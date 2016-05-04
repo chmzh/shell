@@ -1,3 +1,4 @@
+#!/bin/python
 #coding=utf-8
 import common
 import sys
@@ -10,6 +11,7 @@ import subprocess
 #print common.today()
 #print common.yestoday()
 
+subprocess.call(["source /etc/profile"],shell=True)
 yestoday = common.yestoday()
 #yestoday = "2016-04-21"
 def mergeFiles():
@@ -24,9 +26,9 @@ def mergeFiles():
             localFile = localDir+"/"+fileName
             #print localDir
             cmd = "mkdir -p "+localDir
-            code = os.system(cmd)
+            code = subprocess.call(cmd,shell=True)
             if code!=0:
-                logErr(localDir,yestoday,0,cmd)
+                logErr(game,logType,yestoday,0,cmd)
                 continue
             #print logTypeDir
             p1 = subprocess.Popen(["hdfs", "dfs", "-ls", logTypeDir], stdout=subprocess.PIPE)
@@ -37,87 +39,76 @@ def mergeFiles():
                 cmd = "hdfs dfs -getmerge "+dir1+" "+localFile
                 #cmd1 = "merge cmd :"+cmd
                 #print cmd
-                code = os.system(cmd)
+                code = subprocess.call(cmd,shell=True)
                 if code !=0:
-                    logErr(localDir,yestoday,1,cmd)
+                    logErr(game,logType,yestoday,1,cmd)
                     continue
                 cmd = "hdfs dfs -mkdir -p "+impalaDir
-                code = os.system(cmd)
+                code = subprocess.call(cmd,shell=True)
                 if code!=0:
-                    logErr(localDir,yestoday,2,cmd)
+                    logErr(game,logType,yestoday,2,cmd)
                     continue
                 cmd = "hdfs dfs -rm -r "+impalaDir+"/"+fileName
                 #if code!=0:
                 #    logErr(localDir,yestoday,3,cmd)
                 #    continue
                 cmd = "hdfs dfs -put "+localFile+" "+impalaDir
-                code = os.system(cmd)
+                code = subprocess.call(cmd,shell=True)
                 if code!=0:
-                    logErr(localDir,yestoday,4,cmd)
+                    logErr(game,logType,yestoday,4,cmd)
                     continue
                 cmd = "hdfs dfs -chown -R impala:impala "+impalaDir
                 if code!=0:
-                    logErr(localDir,yestoday,5,cmd)
+                    logErr(game,logType,yestoday,5,cmd)
                     continue
                 tmpTable = game+".zh_"+logType+"_tmp"
                 table = game+".zh_"+logType
                 cmd = "impala-shell -i slave1 --query=\"alter table "+tmpTable+" add partition (pdate='"+yestoday+"')\""
-                code = os.system(cmd)
+                code = subprocess.call(cmd,shell=True)
                 if code !=0:
-                    logErr(localDir,yestoday,6,cmd)
+                    logErr(game,logType,yestoday,6,cmd)
                     continue
                 cmd = "impala-shell -i slave1 --query=\"load data inpath '"+impalaDir+"/"+fileName+"' into table "+tmpTable+" PARTITION (pdate='"+yestoday+"') \""
-                code = os.system(cmd)
+                code = subprocess.call(cmd,shell=True)
                 if code !=0:
-                    logErr(localDir,yestoday,7,cmd)
+                    logErr(game,logType,yestoday,7,cmd)
                     continue
                 cmd = "impala-shell -i slave1 --query=\"INSERT INTO "+table+" PARTITION(pdate) SELECT * FROM "+tmpTable+"\""
-                code = os.system(cmd)
+                code = subprocess.call(cmd,shell=True)
                 if code !=0:
-                    logErr(localDir,yestoday,8,cmd)
+                    logErr(game,logType,yestoday,8,cmd)
                     continue
                 cmd = "impala-shell -i slave1 --query=\"TRUNCATE TABLE "+tmpTable+"\""
-                code = os.system(cmd)
+                code = subprocess.call(cmd,shell=True)
                 if code !=0:
-                    logErr(localDir,yestoday,9,cmd)
+                    logErr(game,logType,yestoday,9,cmd)
                     continue
                 #cmd = "hdfs dfs -rm -r "+impalaDir+"/"+fileName
                 #code = os.system(cmd)
                 #if code !=0:
-                #    logErr(localDir,yestoday,10,cmd)
+                #    logErr(game,logType,yestoday,10,cmd)
                 #    continue
-                cmd = "hdfs dfs -rm -r "+logTypeDir+"/"+yestoday
-                code = os.system(cmd)
+                cmd = "rm -rf "+localDir+"/*"
+                code = subprocess.call(cmd,shell=True)
                 if code !=0:
-                    logErr(localDir,yestoday,11,cmd)
+                    logErr(game,logType,yestoday,11,cmd)
+                    continue
+                
+                cmd = "hdfs dfs -rm -r "+logTypeDir+"/"+yestoday
+                code = subprocess.call(cmd,shell=True)
+                if code !=0:
+                    logErr(game,logType,yestoday,12,cmd)
                     continue
 
 
 
-def logErr(logDir,fileName,step,cmd):
-    fileName = logDir+"/err_"+fileName+".log"
-    output = open(fileName, 'w+')
-    output.write("process:%s,cmd:%s" %(step,cmd))
-#with hdfs.open(logTypeDir) as f:
-#    for line in f:
-#        print line
 
-
-#logTypeDir = "`hdfs dfs -ls /user/flume/Games/%s/%s`" %(game,logType)
-#dirs = popen(logTypeDir,'r').read()
-#print dirs
-
-
-#cat = subprocess.Popen(["hadoop", "fs", "-cat", "/path/to/myfile"], stdout=subprocess.PIPE)
-#for line in cat.stdout:
-#    print line
-
-#files=os.popen('ls /','r').read()
-#print files
-
-#os.system('echo $JAVA_HOME')
+def logErr(game,logType,yestoday,step,cmd):
+    errLogDir = "/opt/cndw/shell/errs"
+    os.system("mkdir -p "+errLogDir)
+    fileName = errLogDir+"/err_"+yestoday+".log"
+    output = open(fileName, 'a')
+    output.write("game:%s,logType:%s,process:%s,cmd:%s\r\n" %(game,logType,step,cmd))
+    output.close()
 mergeFiles()
-#a=os.system('`impala-shell -i slave1 --query="load data inpath /a into table a"`')
-#    print a
-
-#user=os.popen(cmd,'r').read()
+#logErr("game1","log1","2016-05-04",1,"cmd")
