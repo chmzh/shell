@@ -1,7 +1,8 @@
+#!/bin/python
 #coding=utf-8
 import datetime
-games = ['game1', 'game2']
-logTypes = ['log1','log2']
+games = {'log_test1':['360','qq']}
+logTypes = ['userreginfo','userlogininfo','userlogoutinfo','serverselinfo','rolecreateinfo','rolelogininfo','rolelvupinfo','rolecancelinfo','payrequestinfo','paysucinfo','rewardinfo','consumeinfo','missioninfo']
 
 def today():
     now = datetime.date.today()
